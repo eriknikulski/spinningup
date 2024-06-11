@@ -26,7 +26,7 @@ def gaussian_likelihood(x, mu, log_std):
     """
     normal_dist = distributions.Normal(mu, torch.exp(log_std))
     log_probs = normal_dist.log_prob(x)
-    return log_probs.sum(dim=1)
+    return log_probs.sum(dim=-1)
 
 
 if __name__ == '__main__':
