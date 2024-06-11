@@ -2,6 +2,7 @@ from copy import deepcopy
 import itertools
 import numpy as np
 import torch
+from torch import distributions
 from torch.optim import Adam
 import gym
 import time
@@ -204,37 +205,27 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         o, a, r, o2, d = data['obs'], data['act'], data['rew'], data['obs2'], data['done']
 
         # Q-values
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        # q1 = 
-        # q2 = 
+        q1 = ac.q1(o, a)
+        q2 = ac.q2(o, a)
 
-        # Target policy smoothing
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
+        with torch.no_grad():
+            # Target policy smoothing
+            pi_targ = ac_targ.pi(o2)
+            epsilon = torch.randn_like(pi_targ) * target_noise
+            epsilon = torch.clamp(epsilon, -noise_clip, noise_clip)
+            a2 = pi_targ + epsilon
+            a2 = torch.clamp(a2, -act_limit, act_limit)
 
-        # Target Q-values
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
+            # Target Q-values
+            q1_pi_targ = ac_targ.q1(o2, a2)
+            q2_pi_targ = ac_targ.q2(o2, a2)
+            q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
+            backup = r + gamma * (1 - d) * q_pi_targ
 
         # MSE loss against Bellman backup
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        # loss_q1 = 
-        # loss_q2 = 
-        # loss_q = 
+        loss_q1 = ((q1 - backup)**2).mean()
+        loss_q2 = ((q2 - backup)**2).mean()
+        loss_q = loss_q1 + loss_q2
 
         # Useful info for logging
         loss_info = dict(Q1Vals=q1.detach().numpy(),
@@ -244,12 +235,9 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
     # Set up function for computing TD3 pi loss
     def compute_loss_pi(data):
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        # loss_pi = 
+        o = data['obs']
+        q1_pi = ac.q1(o, ac.pi(o))
+        loss_pi = -q1_pi.mean()
         return loss_pi
 
     #=========================================================================#
