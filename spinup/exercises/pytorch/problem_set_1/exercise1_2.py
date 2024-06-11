@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from torch import distributions
+from torch.nn import Parameter
+
 from spinup.exercises.pytorch.problem_set_1 import exercise1_1
 from spinup.exercises.pytorch.problem_set_1 import exercise1_2_auxiliary
 
@@ -33,12 +36,15 @@ def mlp(sizes, activation, output_activation=nn.Identity):
         (Use an nn.Sequential module.)
 
     """
-    #######################
-    #                     #
-    #   YOUR CODE HERE    #
-    #                     #
-    #######################
-    pass
+    layers = []
+
+    for i in range(len(sizes) - 1):
+        layers.append(nn.Linear(sizes[i], sizes[i + 1]))
+        layers.append(activation() if i < len(sizes) - 2 else output_activation())
+
+    model = nn.Sequential(*layers)
+
+    return model
 
 class DiagonalGaussianDistribution:
 
@@ -52,12 +58,8 @@ class DiagonalGaussianDistribution:
             A PyTorch Tensor of samples from the diagonal Gaussian distribution with
             mean and log_std given by self.mu and self.log_std.
         """
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        pass
+        normal_dist = distributions.Normal(self.mu, torch.exp(self.log_std))
+        return normal_dist.sample()
 
     #================================(Given, ignore)==========================================#
     def log_prob(self, value):
@@ -80,14 +82,8 @@ class MLPGaussianActor(nn.Module):
         independent of observations, initialized to [-0.5, -0.5, ..., -0.5].
         (Make sure it's trainable!)
         """
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        # self.log_std = 
-        # self.mu_net = 
-        pass 
+        self.log_std = Parameter(torch.full((act_dim,), -0.5), requires_grad=True)
+        self.mu_net = mlp([obs_dim, *hidden_sizes, act_dim], activation)
 
     #================================(Given, ignore)==========================================#
     def forward(self, obs, act=None):
